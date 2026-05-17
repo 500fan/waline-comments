@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: waline
+    runtime: docker
+    envVars:
+      - key: MONGO_HOST
+        sync: false
+      - key: MONGO_USER
+        sync: false
+      - key: MONGO_PASSWORD
+        sync: false
+      - key: MONGO_DB
+        sync: false
+      - key: JWT_TOKEN
+        sync: false
