@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node node_modules/@waline/vercel/vanilla.js"
+    "start": "node start.js"
   },
   "dependencies": {
     "@waline/vercel": "^1.0.0"
