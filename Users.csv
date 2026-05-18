@@ -1,3 +1,2 @@
 objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
-admin001,admin,500fan@gmail.com,$2a$08$r8xr/x9aT9dAWyCtoxBg..Dnumq09hP46u5mrHVVn4XPHPPFE7e3m,administrator,,,,,,,2026-05-18,2026-05-18,,,,
-,test,test123@qq.com,$2a$08$Jze8YalYarTTCrcCpT1AeeGkPVNi6cB0l/7agYCHXOxYOllfpHdx2,verify:9834:1779081139793,,,,,,,,,,,,
+admin001,admin,500fan@gmail.com,$2a$08$r8xr/x9aT9dAWyCtoxBg..Dnumq09hP46u5mrHVVn4XPHPPFE7e3m,administrator,,,,,,,2026-05-18,2026-05-18
