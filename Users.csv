@@ -1,3 +1,2 @@
-objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
-u001,admin,500fan@gmail.com,$2a$08$gp4NXjOSgBrZIZV8nHYTv..LAvnvlEpRKuJXLSep8v7HrOcNlcSLq,administrator,,,,,,,2026-05-18,2026-05-18,,,,
-,Jin,392637221@qq.com,,guest,r,https://avatars.githubusercontent.com/u/49046305?v=4,,500fan,,,,,,,,
+id,objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
+u001,,admin,500fan@gmail.com,$2a$08$gp4NXjOSgBrZIZV8nHYTv..LAvnvlEpRKuJXLSep8v7HrOcNlcSLq,administrator,,,,,,,2026-05-18,2026-05-18
