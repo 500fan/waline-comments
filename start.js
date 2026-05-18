@@ -1,35 +1,47 @@
 // Run patch.js first
 require('./patch.js');
 
-// Additional runtime patch: wrap comment postAction post-save in try-catch
+// Runtime patch: replace comment postAction with simplified version
 const fs = require('fs');
 const commentPath = require('path').join(__dirname, 'node_modules/@waline/vercel/src/controller/comment.js');
-let commentCode = fs.readFileSync(commentPath, 'utf-8');
+let code = fs.readFileSync(commentPath, 'utf-8');
 
-if (!commentCode.includes('[RUNTIME_PATCHED]')) {
-  const marker = "think.logger.debug(`Comment have been added to storage.`);";
-  const markerIdx = commentCode.indexOf(marker);
-  if (markerIdx > -1) {
-    const insertPoint = markerIdx + marker.length;
-    commentCode =
-      commentCode.substring(0, insertPoint) +
-      "\n    try { // [RUNTIME_PATCHED]" +
-      commentCode.substring(insertPoint);
+if (!code.includes('[SIMPLE_POST]')) {
+  // Find the postAction method and replace it entirely
+  const postStart = code.indexOf('  async postAction() {');
+  const postEnd = code.indexOf('\n  async putAction()', postStart);
 
-    const putActionIdx = commentCode.indexOf("async putAction()", markerIdx);
-    if (putActionIdx > -1) {
-      const lastReturn = commentCode.lastIndexOf("return this.success(", putActionIdx);
-      const lastSemicolon = commentCode.indexOf(");", lastReturn);
-      const afterSemicolon = commentCode.indexOf("\n", lastSemicolon) + 1;
+  if (postStart > -1 && postEnd > -1) {
+    const simplePostAction = `  // [SIMPLE_POST] Simplified postAction - skip notify/webhook to avoid hangs
+  async postAction() {
+    const { comment, link, mail, nick, pid, rid, ua, url } = this.post();
+    const data = {
+      link, mail, nick, pid, rid, ua, url, comment,
+      ip: this.ctx.ip,
+      insertedAt: new Date(),
+      user_id: '',
+      status: 'approved',
+    };
 
-      commentCode =
-        commentCode.substring(0, afterSemicolon) +
-        `    } catch (runtimeErr) {\n      console.error('[RUNTIME_PATCHED] Post-save error:', runtimeErr.message);\n      return this.success(resp);\n    }\n` +
-        commentCode.substring(afterSemicolon);
-
-      fs.writeFileSync(commentPath, commentCode);
-      console.log('[start.js] Comment controller runtime-patched');
+    const { userInfo } = this.ctx.state;
+    if (userInfo && userInfo.objectId) {
+      data.user_id = userInfo.objectId;
     }
+
+    try {
+      const resp = await this.modelInstance.add(data);
+      return this.success(resp);
+    } catch (err) {
+      console.error('[SIMPLE_POST] Error:', err.message);
+      return this.fail(err.message);
+    }
+  }
+`;
+    code = code.substring(0, postStart) + simplePostAction + code.substring(postEnd + 1);
+    fs.writeFileSync(commentPath, code);
+    console.log('[start.js] Replaced postAction with simplified version');
+  } else {
+    console.log('[start.js] Could not find postAction boundaries');
   }
 }
 
