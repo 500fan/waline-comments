@@ -174,18 +174,17 @@ console.log('[patch] Created upload middleware');
 const middlewareConfigPath = path.join(__dirname, 'node_modules/@waline/vercel/src/config/middleware.js');
 let middlewareCode = fs.readFileSync(middlewareConfigPath, 'utf-8');
 
-// Add upload middleware AFTER payload and AFTER router, before controller
+// Add upload middleware AFTER payload
 if (!middlewareCode.includes("'upload'")) {
   const uploadMiddlewareEntry = `
   {
     handle: 'upload',
-  },
-`;
-  // Insert after routerREST and before 'logic'
+  },`;
+  // Insert after payload block (after the limit: '5mb' line)
   middlewareCode = middlewareCode.replace(
-    "{ handle: routerREST },",
-    "{ handle: routerREST },\n" + uploadMiddlewareEntry
+    "limit: '5mb',\n    },\n  },",
+    "limit: '5mb',\n    },\n  },\n" + uploadMiddlewareEntry
   );
   fs.writeFileSync(middlewareConfigPath, middlewareCode);
-  console.log('[patch] Registered upload middleware after routerREST');
+  console.log('[patch] Registered upload middleware after payload');
 }
