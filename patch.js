@@ -59,6 +59,7 @@ async function ghFetch(token, url, opts = {}) {
 }
 
 module.exports = () => async (ctx, next) => {
+  console.log('[upload-middleware]', ctx.method, ctx.path);
   if (ctx.path !== '/api/upload') return next();
 
   ctx.set('Access-Control-Allow-Origin', '*');
