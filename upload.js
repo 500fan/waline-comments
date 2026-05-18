@@ -3,6 +3,7 @@ const path = require('path');
 
 // Helper: read images.json from GitHub
 async function readImagesJson(token, repo) {
+  console.log('[upload] Reading images.json from', repo);
   try {
     const resp = await fetch(
       `https://api.github.com/repos/${repo}/contents/images.json`,
@@ -14,36 +15,47 @@ async function readImagesJson(token, repo) {
         },
       }
     );
+    console.log('[upload] Read response status:', resp.status);
     if (resp.status === 404) return { data: {}, sha: null };
     const json = await resp.json();
     const content = Buffer.from(json.content, 'base64').toString('utf-8');
     return { data: JSON.parse(content), sha: json.sha };
-  } catch {
+  } catch (err) {
+    console.error('[upload] Read error:', err);
     return { data: {}, sha: null };
   }
 }
 
 // Helper: write images.json to GitHub
 async function writeImagesJson(token, repo, data, sha) {
+  console.log('[upload] Writing images.json to', repo, 'sha:', sha);
   const body = {
     message: 'feat(waline): update images',
     content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
   };
   if (sha) body.sha = sha;
 
-  const resp = await fetch(
-    `https://api.github.com/repos/${repo}/contents/images.json`,
-    {
-      method: 'PUT',
-      headers: {
-        accept: 'application/vnd.github.v3+json',
-        authorization: `token ${token}`,
-        'user-agent': 'Waline',
-      },
-      body: JSON.stringify(body),
-    }
-  );
-  return resp.json();
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/images.json`,
+      {
+        method: 'PUT',
+        headers: {
+          accept: 'application/vnd.github.v3+json',
+          authorization: `token ${token}`,
+          'user-agent': 'Waline',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    console.log('[upload] Write response status:', resp.status);
+    const result = await resp.json();
+    console.log('[upload] Write result:', JSON.stringify(result).slice(0, 200));
+    return result;
+  } catch (err) {
+    console.error('[upload] Write error:', err);
+    throw err;
+  }
 }
 
 // Upload controller
@@ -54,12 +66,10 @@ module.exports = class extends think.Controller {
 
   constructor(ctx) {
     super(ctx);
-    console.log('[upload] Controller loaded');
   }
 
   // GET /api/upload?id=xxx - serve image
   async getAction() {
-    console.log('[upload] GET action called');
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
@@ -79,14 +89,12 @@ module.exports = class extends think.Controller {
 
   // POST /api/upload - upload image
   async postAction() {
-    console.log('[upload] POST action called');
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
     }
 
     const file = this.file('file');
-    console.log('[upload] File received:', file ? 'yes' : 'no');
     if (!file) {
       return this.json({ errno: 1, errmsg: 'No file uploaded' });
     }
