@@ -108,16 +108,18 @@ module.exports = () => async (ctx, next) => {
 
     const files = ctx.request.files;
     const body = ctx.request.body;
-    const file = files && (files.file || files.upload || (Array.isArray(files) ? files[0] : Object.values(files)[0]));
+    const file = (files && (files.file || files.upload || (Array.isArray(files) ? files[0] : Object.values(files)[0])))
+      || (body && body.file);
     if (!file) {
       ctx.type = 'application/json';
-      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file', debug: { filesType: typeof files, filesKeys: files ? Object.keys(files) : null, bodyType: typeof body, bodyKeys: body ? Object.keys(body) : null } });
+      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file' });
       return;
     }
 
     try {
-      const content = fs.readFileSync(file.filepath || file.path);
-      const ext = path.extname(file.originalFilename || file.newFilename || '.png').toLowerCase();
+      const filePath = file.filepath || file.path || file.filePath;
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(file.originalFilename || file.newFilename || file.name || '.png').toLowerCase();
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
       const type = mimeMap[ext] || 'image/png';
@@ -133,7 +135,7 @@ module.exports = () => async (ctx, next) => {
       }
 
       images[id] = {
-        name: file.originalFilename || file.newFilename || 'image' + ext,
+        name: file.originalFilename || file.newFilename || file.name || 'image' + ext,
         type,
         base64: content.toString('base64'),
         time: new Date().toISOString(),
@@ -156,7 +158,7 @@ module.exports = () => async (ctx, next) => {
         errno: 0,
         data: {
           url: \`https://\${ctx.host}/api/upload?id=\${id}\`,
-          alt: file.originalFilename || file.newFilename || 'image',
+          alt: file.originalFilename || file.newFilename || file.name || 'image',
         },
       });
     } catch (err) {
