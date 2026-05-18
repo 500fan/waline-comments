@@ -108,8 +108,10 @@ module.exports = () => async (ctx, next) => {
 
     const files = ctx.request.files;
     const body = ctx.request.body;
-    const file = (files && (files.file || files.upload || (Array.isArray(files) ? files[0] : Object.values(files)[0])))
+    let file = (files && (files.file || files.upload || (Array.isArray(files) ? files[0] : Object.values(files)[0])))
       || (body && body.file);
+    // Handle nested structure: body.file.file
+    if (file && file.file) file = file.file;
     if (!file) {
       ctx.type = 'application/json';
       ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file' });
@@ -118,11 +120,6 @@ module.exports = () => async (ctx, next) => {
 
     try {
       const filePath = file.filepath || file.path || file.filePath;
-      if (!filePath) {
-        ctx.type = 'application/json';
-        ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file path', debug: { fileKeys: Object.keys(file), file: JSON.stringify(file).slice(0, 500) } });
-        return;
-      }
       const content = fs.readFileSync(filePath);
       const ext = path.extname(file.originalFilename || file.newFilename || file.name || '.png').toLowerCase();
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
