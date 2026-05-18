@@ -12,3 +12,4 @@ link,mail,nick,pid,rid,ua,url,comment,ip,insertedAt,user_id,status,id
 ,,simpletest,,,,/simple,simple test works?,139.207.125.96,Mon May 18 2026 13:12:01 GMT+0000 (Coordinated Universal Time),,approved,xv2mpjwue4p
 ,,timer2,,,,/timing,timing test,139.207.125.96,Mon May 18 2026 13:13:26 GMT+0000 (Coordinated Universal Time),,approved,rdbxbfs4tl
 ,test@example.com,testuser,,,,/,hello world!,139.207.125.96,Mon May 18 2026 13:13:51 GMT+0000 (Coordinated Universal Time),,approved,18yxy8skhlg
+,,directtest,,,,/direct,direct body test,139.207.125.96,Mon May 18 2026 13:18:03 GMT+0000 (Coordinated Universal Time),,approved,4un5ps8dksp
