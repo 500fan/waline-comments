@@ -35,7 +35,7 @@ const controllerDir = path.join(__dirname, 'node_modules/@waline/vercel/src/cont
 const uploadControllerPath = path.join(controllerDir, 'upload.js');
 const uploadSourcePath = path.join(__dirname, 'upload.js');
 
-if (fs.existsSync(uploadSourcePath) && !fs.existsSync(uploadControllerPath)) {
+if (fs.existsSync(uploadSourcePath)) {
   fs.copyFileSync(uploadSourcePath, uploadControllerPath);
-  console.log('[patch] Added upload controller');
+  console.log('[patch] Updated upload controller');
 }
