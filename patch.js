@@ -29,3 +29,13 @@ if (fs.existsSync(githubPath)) {
   fs.writeFileSync(githubPath, code);
   console.log('[patch] github.js patched successfully');
 }
+
+// Add upload controller for image uploads
+const controllerDir = path.join(__dirname, 'node_modules/@waline/vercel/src/controller');
+const uploadControllerPath = path.join(controllerDir, 'upload.js');
+const uploadSourcePath = path.join(__dirname, 'upload.js');
+
+if (fs.existsSync(uploadSourcePath) && !fs.existsSync(uploadControllerPath)) {
+  fs.copyFileSync(uploadSourcePath, uploadControllerPath);
+  console.log('[patch] Added upload controller');
+}
