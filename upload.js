@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const BaseRest = require('./rest.js');
 
 // Helper: read images.json from GitHub
 async function readImagesJson(token, repo) {
@@ -47,35 +46,42 @@ async function writeImagesJson(token, repo, data, sha) {
   return resp.json();
 }
 
-// Upload controller: POST /api/upload
-module.exports = class extends BaseRest {
+// Upload controller
+module.exports = class extends think.Controller {
+  static get _REST() {
+    return true;
+  }
+
   constructor(ctx) {
     super(ctx);
   }
 
-  async indexAction() {
+  // GET /api/upload?id=xxx - serve image
+  async getAction() {
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
-
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
     }
 
-    // GET: serve image by id
-    if (this.ctx.method === 'GET') {
-      const id = this.get('id');
-      if (!id) return this.json({ errno: 1, errmsg: 'Missing image id' });
+    const id = this.get('id');
+    if (!id) return this.json({ errno: 1, errmsg: 'Missing image id' });
 
-      const { data } = await readImagesJson(GITHUB_TOKEN, GITHUB_REPO);
-      const img = data[id];
-      if (!img) return this.json({ errno: 1, errmsg: 'Image not found' });
+    const { data } = await readImagesJson(GITHUB_TOKEN, GITHUB_REPO);
+    const img = data[id];
+    if (!img) return this.json({ errno: 1, errmsg: 'Image not found' });
 
-      const buffer = Buffer.from(img.base64, 'base64');
-      this.ctx.type = img.type || 'image/png';
-      this.ctx.body = buffer;
-      return;
+    const buffer = Buffer.from(img.base64, 'base64');
+    this.ctx.type = img.type || 'image/png';
+    this.ctx.body = buffer;
+  }
+
+  // POST /api/upload - upload image
+  async postAction() {
+    const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
+    if (!GITHUB_TOKEN || !GITHUB_REPO) {
+      return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
     }
 
-    // POST: upload image
     const file = this.file('file');
     if (!file) {
       return this.json({ errno: 1, errmsg: 'No file uploaded' });
