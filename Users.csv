@@ -1,4 +1,2 @@
-display_name,email,url,avatar,github,passowrd,type,id
-Jin,392637221@qq.com,r,https://avatars.githubusercontent.com/u/49046305?v=4,500fan,t0000062516,administrator,wdniny7gpu8
-admin,admin@test.com,,,,,guest,dw96hduj04i
-admin,500fan@gmail.com,,,,,guest,lib6k8117x
+objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
+admin001,admin,500fan@gmail.com,$2a$08$r8xr/x9aT9dAWyCtoxBg..Dnumq09hP46u5mrHVVn4XPHPPFE7e3m,administrator,,,,,,,2026-05-18,2026-05-18
