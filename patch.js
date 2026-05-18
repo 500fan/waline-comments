@@ -27,6 +27,14 @@ if (fs.existsSync(githubPath)) {
   console.log('[patch] github.js patched successfully');
 }
 
+// Remove old upload controller if exists
+const controllerDir = path.join(__dirname, 'node_modules/@waline/vercel/src/controller');
+const oldController = path.join(controllerDir, 'upload.js');
+if (fs.existsSync(oldController)) {
+  fs.unlinkSync(oldController);
+  console.log('[patch] Removed old upload controller');
+}
+
 // Create upload middleware
 const middlewareDir = path.join(__dirname, 'node_modules/@waline/vercel/src/middleware');
 const uploadMiddlewarePath = path.join(middlewareDir, 'upload.js');
