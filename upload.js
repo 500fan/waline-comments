@@ -3,7 +3,6 @@ const path = require('path');
 
 // Helper: read images.json from GitHub
 async function readImagesJson(token, repo) {
-  console.log('[upload] Reading images.json from', repo);
   try {
     const resp = await fetch(
       `https://api.github.com/repos/${repo}/contents/images.json`,
@@ -15,47 +14,46 @@ async function readImagesJson(token, repo) {
         },
       }
     );
-    console.log('[upload] Read response status:', resp.status);
     if (resp.status === 404) return { data: {}, sha: null };
     const json = await resp.json();
+    if (json.message) {
+      console.error('[upload] readImagesJson error:', json.message);
+      return { data: {}, sha: null };
+    }
     const content = Buffer.from(json.content, 'base64').toString('utf-8');
     return { data: JSON.parse(content), sha: json.sha };
   } catch (err) {
-    console.error('[upload] Read error:', err);
+    console.error('[upload] readImagesJson exception:', err.message);
     return { data: {}, sha: null };
   }
 }
 
 // Helper: write images.json to GitHub
 async function writeImagesJson(token, repo, data, sha) {
-  console.log('[upload] Writing images.json to', repo, 'sha:', sha);
   const body = {
     message: 'feat(waline): update images',
     content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
   };
   if (sha) body.sha = sha;
 
-  try {
-    const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/images.json`,
-      {
-        method: 'PUT',
-        headers: {
-          accept: 'application/vnd.github.v3+json',
-          authorization: `token ${token}`,
-          'user-agent': 'Waline',
-        },
-        body: JSON.stringify(body),
-      }
-    );
-    console.log('[upload] Write response status:', resp.status);
-    const result = await resp.json();
-    console.log('[upload] Write result:', JSON.stringify(result).slice(0, 200));
-    return result;
-  } catch (err) {
-    console.error('[upload] Write error:', err);
-    throw err;
+  const resp = await fetch(
+    `https://api.github.com/repos/${repo}/contents/images.json`,
+    {
+      method: 'PUT',
+      headers: {
+        accept: 'application/vnd.github.v3+json',
+        authorization: `token ${token}`,
+        'user-agent': 'Waline',
+      },
+      body: JSON.stringify(body),
+    }
+  );
+  const result = await resp.json();
+  if (!resp.ok || result.message) {
+    console.error('[upload] writeImagesJson failed:', resp.status, result.message);
+    throw new Error(result.message || `GitHub API error ${resp.status}`);
   }
+  return result;
 }
 
 // Upload controller
@@ -125,7 +123,7 @@ module.exports = class extends think.Controller {
       };
 
       // Write back
-      await writeImagesJson(GITHUB_TOKEN, GITHUB_REPO, images, sha);
+      const writeResult = await writeImagesJson(GITHUB_TOKEN, GITHUB_REPO, images, sha);
 
       const serverURL = `https://${this.ctx.host}`;
       return this.json({
@@ -136,7 +134,6 @@ module.exports = class extends think.Controller {
         },
       });
     } catch (err) {
-      console.error('[upload] Error:', err);
       return this.json({ errno: 1, errmsg: err.message });
     }
   }
