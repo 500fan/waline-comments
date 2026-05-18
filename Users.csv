@@ -1,1 +1,2 @@
-objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
+display_name,email,url,avatar,github,passowrd,type,id
+Jin,392637221@qq.com,r,https://avatars.githubusercontent.com/u/49046305?v=4,500fan,$2a$08$rukDRkUPUnxKkEY8rseTA.plCjH8xG1foaGIFUeptvwwNOoUZwFO2,administrator,wdniny7gpu8
