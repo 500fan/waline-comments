@@ -1,15 +1,16 @@
 const fs = require('fs');
 const path = require('path');
+const BaseRest = require('./rest.js');
 
 // Custom upload controller for waline
 // Stores images in GitHub repository
 
-module.exports = class extends think.Controller {
+module.exports = class extends BaseRest {
   constructor(ctx) {
     super(ctx);
   }
 
-  async post() {
+  async indexAction() {
     const { GITHUB_TOKEN, GITHUB_REPO, GITHUB_PATH } = process.env;
 
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
