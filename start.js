@@ -30,12 +30,10 @@ if (!code.includes('[SIMPLE_POST]')) {
 
     try {
       const resp = await this.modelInstance.add(data);
-      this.ctx.type = 'application/json';
-      this.ctx.body = JSON.stringify({ errno: 0, errmsg: '', data: resp });
+      return this.json({ errno: 0, errmsg: '', data: resp });
     } catch (err) {
       console.error('[SIMPLE_POST] Error:', err.message);
-      this.ctx.type = 'application/json';
-      this.ctx.body = JSON.stringify({ errno: 1, errmsg: err.message });
+      return this.json({ errno: 1, errmsg: err.message });
     }
   }
 `;
