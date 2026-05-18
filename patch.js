@@ -37,14 +37,3 @@ if (fs.existsSync(uploadSourcePath)) {
   console.log('[patch] Updated upload controller');
 }
 
-// Register upload route in router
-const routerPath = path.join(__dirname, 'node_modules/@waline/vercel/src/config/router.js');
-const routerContent = `module.exports = [
-  {
-    match: /\\/api\\/upload/,
-    controller: 'upload',
-    method: 'rest',
-  },
-];`;
-fs.writeFileSync(routerPath, routerContent);
-console.log('[patch] Registered upload route');

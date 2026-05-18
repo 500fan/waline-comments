@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const BaseRest = require('./rest.js');
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -42,25 +43,31 @@ async function writeImages(token, repo, data, sha) {
   });
 }
 
-module.exports = class extends think.Controller {
-  async getAction() {
-    const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
-    const id = this.get('id');
-    if (!id) return this.json({ errno: 1, errmsg: 'Missing id' });
-
-    try {
-      const { data } = await readImages(GITHUB_TOKEN, GITHUB_REPO);
-      const img = data[id];
-      if (!img) return this.json({ errno: 1, errmsg: 'Not found' });
-      this.ctx.type = img.type || 'image/png';
-      this.ctx.body = Buffer.from(img.base64, 'base64');
-    } catch (err) {
-      return this.json({ errno: 1, errmsg: err.message });
-    }
+module.exports = class extends BaseRest {
+  constructor(ctx) {
+    super(ctx);
   }
 
-  async postAction() {
+  async indexAction() {
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
+
+    // GET: serve image
+    if (this.ctx.method === 'GET') {
+      const id = this.get('id');
+      if (!id) return this.json({ errno: 1, errmsg: 'Missing id' });
+      try {
+        const { data } = await readImages(GITHUB_TOKEN, GITHUB_REPO);
+        const img = data[id];
+        if (!img) return this.json({ errno: 1, errmsg: 'Not found' });
+        this.ctx.type = img.type || 'image/png';
+        this.ctx.body = Buffer.from(img.base64, 'base64');
+      } catch (err) {
+        return this.json({ errno: 1, errmsg: err.message });
+      }
+      return;
+    }
+
+    // POST: upload image
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'Not configured' });
     }
