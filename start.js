@@ -70,10 +70,12 @@ think.app.use(async (ctx, next) => {
       return;
     }
 
-    const file = ctx.request.files && ctx.request.files.file;
+    // ThinkJS payload middleware stores files in ctx.request.files
+    const files = ctx.request.files;
+    const file = files && (files.file || files.upload || Object.values(files)[0]);
     if (!file) {
       ctx.type = 'application/json';
-      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file' });
+      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file', debug: { hasFiles: !!files, keys: files ? Object.keys(files) : [] } });
       return;
     }
 
