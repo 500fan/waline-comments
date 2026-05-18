@@ -177,6 +177,110 @@ module.exports = () => async (ctx, next) => {
 fs.writeFileSync(uploadMiddlewarePath, uploadMiddlewareCode);
 console.log('[patch] Created upload middleware');
 
+// Patch comment controller to catch post-save errors
+const commentCtrlPath = path.join(__dirname, 'node_modules/@waline/vercel/src/controller/comment.js');
+let commentCode = fs.readFileSync(commentCtrlPath, 'utf-8');
+
+// Simple patch: wrap the webhook + formatCmt + notify + postSave section
+const oldPostSave = `    await this.ctx.webhook('new_comment', {
+      comment: { ...resp, rawComment: comment },
+      reply: parentComment,
+    });
+
+    const cmtReturn = await formatCmt(
+      resp,
+      [userInfo],
+      { ...this.config(), deprecated: this.ctx.state.deprecated },
+      userInfo,
+    );
+    const parentReturn = parentComment
+      ? await formatCmt(
+          parentComment,
+          parentUser ? [parentUser] : [],
+          { ...this.config(), deprecated: this.ctx.state.deprecated },
+          userInfo,
+        )
+      : undefined;
+
+    if (comment.status !== 'spam') {
+      const notify = this.service('notify', this);
+
+      await notify.run(
+        { ...cmtReturn, mail: resp.mail, rawComment: comment },
+        parentReturn ? { ...parentReturn, mail: parentComment.mail } : undefined,
+      );
+    }
+
+    think.logger.debug(\`Comment notify done!\`);
+
+    await this.hook('postSave', resp, parentComment);
+
+    think.logger.debug(\`Comment post hooks postSave done!\`);
+
+    return this.success(
+      await formatCmt(
+        resp,
+        [userInfo],
+        { ...this.config(), deprecated: this.ctx.state.deprecated },
+        userInfo,
+      ),
+    );`;
+
+const newPostSave = `    // [PATCHED] Wrap post-save in try-catch to prevent 502
+    try {
+      await this.ctx.webhook('new_comment', {
+        comment: { ...resp, rawComment: comment },
+        reply: parentComment,
+      });
+
+      const cmtReturn = await formatCmt(
+        resp,
+        [userInfo],
+        { ...this.config(), deprecated: this.ctx.state.deprecated },
+        userInfo,
+      );
+      const parentReturn = parentComment
+        ? await formatCmt(
+            parentComment,
+            parentUser ? [parentUser] : [],
+            { ...this.config(), deprecated: this.ctx.state.deprecated },
+            userInfo,
+          )
+        : undefined;
+
+      if (comment.status !== 'spam') {
+        const notify = this.service('notify', this);
+
+        await notify.run(
+          { ...cmtReturn, mail: resp.mail, rawComment: comment },
+          parentReturn ? { ...parentReturn, mail: parentComment.mail } : undefined,
+        );
+      }
+
+      think.logger.debug(\`Comment notify done!\`);
+
+      await this.hook('postSave', resp, parentComment);
+
+      think.logger.debug(\`Comment post hooks postSave done!\`);
+    } catch (postSaveErr) {
+      console.error('[PATCHED] Post-save error (comment saved OK):', postSaveErr.message);
+    }
+
+    return this.success(
+      await formatCmt(
+        resp,
+        [userInfo],
+        { ...this.config(), deprecated: this.ctx.state.deprecated },
+        userInfo,
+      ).catch(() => resp),
+    );`;
+
+if (commentCode.includes("await this.ctx.webhook('new_comment',") && !commentCode.includes('[PATCHED]')) {
+  commentCode = commentCode.replace(oldPostSave, newPostSave);
+  fs.writeFileSync(commentCtrlPath, commentCode);
+  console.log('[patch] Patched comment controller with post-save error handling');
+}
+
 // Register upload middleware in middleware config
 const middlewareConfigPath = path.join(__dirname, 'node_modules/@waline/vercel/src/config/middleware.js');
 let middlewareCode = fs.readFileSync(middlewareConfigPath, 'utf-8');
