@@ -54,10 +54,12 @@ module.exports = class extends think.Controller {
 
   constructor(ctx) {
     super(ctx);
+    console.log('[upload] Controller loaded');
   }
 
   // GET /api/upload?id=xxx - serve image
   async getAction() {
+    console.log('[upload] GET action called');
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
@@ -77,12 +79,14 @@ module.exports = class extends think.Controller {
 
   // POST /api/upload - upload image
   async postAction() {
+    console.log('[upload] POST action called');
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
     }
 
     const file = this.file('file');
+    console.log('[upload] File received:', file ? 'yes' : 'no');
     if (!file) {
       return this.json({ errno: 1, errmsg: 'No file uploaded' });
     }
@@ -124,6 +128,7 @@ module.exports = class extends think.Controller {
         },
       });
     } catch (err) {
+      console.error('[upload] Error:', err);
       return this.json({ errno: 1, errmsg: err.message });
     }
   }
