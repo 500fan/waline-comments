@@ -1,136 +1,94 @@
 const fs = require('fs');
 const path = require('path');
 
-// Helper: read images.json from GitHub
-async function readImagesJson(token, repo) {
+const GITHUB_API = 'https://api.github.com';
+
+async function ghFetch(token, url, opts = {}) {
+  const resp = await fetch(url, {
+    ...opts,
+    headers: {
+      accept: 'application/vnd.github.v3+json',
+      authorization: `token ${token}`,
+      'user-agent': 'Waline',
+      ...(opts.headers || {}),
+    },
+  });
+  const json = await resp.json();
+  if (!resp.ok) throw new Error(json.message || `GitHub API ${resp.status}`);
+  return json;
+}
+
+async function readImages(token, repo) {
   try {
-    const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/images.json`,
-      {
-        headers: {
-          accept: 'application/vnd.github.v3+json',
-          authorization: `token ${token}`,
-          'user-agent': 'Waline',
-        },
-      }
-    );
-    if (resp.status === 404) return { data: {}, sha: null };
-    const json = await resp.json();
-    if (json.message) {
-      console.error('[upload] readImagesJson error:', json.message);
-      return { data: {}, sha: null };
-    }
+    const json = await ghFetch(token, `${GITHUB_API}/repos/${repo}/contents/images.json`);
     const content = Buffer.from(json.content, 'base64').toString('utf-8');
     return { data: JSON.parse(content), sha: json.sha };
   } catch (err) {
-    console.error('[upload] readImagesJson exception:', err.message);
-    return { data: {}, sha: null };
+    if (err.message && err.message.includes('Not Found')) return { data: {}, sha: null };
+    throw err;
   }
 }
 
-// Helper: write images.json to GitHub
-async function writeImagesJson(token, repo, data, sha) {
+async function writeImages(token, repo, data, sha) {
   const body = {
     message: 'feat(waline): update images',
-    content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
+    content: Buffer.from(JSON.stringify(data, null, 2), 'utf-8').toString('base64'),
   };
   if (sha) body.sha = sha;
-
-  const resp = await fetch(
-    `https://api.github.com/repos/${repo}/contents/images.json`,
-    {
-      method: 'PUT',
-      headers: {
-        accept: 'application/vnd.github.v3+json',
-        authorization: `token ${token}`,
-        'user-agent': 'Waline',
-      },
-      body: JSON.stringify(body),
-    }
-  );
-  const result = await resp.json();
-  if (!resp.ok || result.message) {
-    console.error('[upload] writeImagesJson failed:', resp.status, result.message);
-    throw new Error(result.message || `GitHub API error ${resp.status}`);
-  }
-  return result;
+  return ghFetch(token, `${GITHUB_API}/repos/${repo}/contents/images.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
-// Upload controller
 module.exports = class extends think.Controller {
-  static get _REST() {
-    return true;
-  }
-
-  constructor(ctx) {
-    super(ctx);
-  }
-
-  // GET /api/upload?id=xxx - serve image
   async getAction() {
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
-    if (!GITHUB_TOKEN || !GITHUB_REPO) {
-      return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
-    }
-
     const id = this.get('id');
-    if (!id) return this.json({ errno: 1, errmsg: 'Missing image id' });
+    if (!id) return this.json({ errno: 1, errmsg: 'Missing id' });
 
-    const { data } = await readImagesJson(GITHUB_TOKEN, GITHUB_REPO);
-    const img = data[id];
-    if (!img) return this.json({ errno: 1, errmsg: 'Image not found' });
-
-    const buffer = Buffer.from(img.base64, 'base64');
-    this.ctx.type = img.type || 'image/png';
-    this.ctx.body = buffer;
+    try {
+      const { data } = await readImages(GITHUB_TOKEN, GITHUB_REPO);
+      const img = data[id];
+      if (!img) return this.json({ errno: 1, errmsg: 'Not found' });
+      this.ctx.type = img.type || 'image/png';
+      this.ctx.body = Buffer.from(img.base64, 'base64');
+    } catch (err) {
+      return this.json({ errno: 1, errmsg: err.message });
+    }
   }
 
-  // POST /api/upload - upload image
   async postAction() {
     const { GITHUB_TOKEN, GITHUB_REPO } = process.env;
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
-      return this.json({ errno: 1, errmsg: 'GitHub storage not configured' });
+      return this.json({ errno: 1, errmsg: 'Not configured' });
     }
 
     const file = this.file('file');
-    if (!file) {
-      return this.json({ errno: 1, errmsg: 'No file uploaded' });
-    }
+    if (!file) return this.json({ errno: 1, errmsg: 'No file' });
 
     try {
       const content = fs.readFileSync(file.path);
       const ext = path.extname(file.originalFilename || file.name || '.png').toLowerCase();
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const mimeMap = {
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml',
-      };
+      const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
       const type = mimeMap[ext] || 'image/png';
 
-      // Read existing images
-      const { data: images, sha } = await readImagesJson(GITHUB_TOKEN, GITHUB_REPO);
-
-      // Add new image
+      const { data: images, sha } = await readImages(GITHUB_TOKEN, GITHUB_REPO);
       images[id] = {
         name: file.originalFilename || file.name || 'image' + ext,
         type,
         base64: content.toString('base64'),
         time: new Date().toISOString(),
       };
+      await writeImages(GITHUB_TOKEN, GITHUB_REPO, images, sha);
 
-      // Write back
-      const writeResult = await writeImagesJson(GITHUB_TOKEN, GITHUB_REPO, images, sha);
-
-      const serverURL = `https://${this.ctx.host}`;
       return this.json({
         errno: 0,
         data: {
-          url: `${serverURL}/api/upload?id=${id}`,
-          alt: file.originalFilename || file.name || 'uploaded image',
+          url: `https://${this.ctx.host}/api/upload?id=${id}`,
+          alt: file.originalFilename || file.name || 'image',
         },
       });
     } catch (err) {

@@ -7,8 +7,6 @@ const githubPath = path.join(__dirname, 'node_modules/@waline/vercel/src/service
 if (fs.existsSync(githubPath)) {
   let code = fs.readFileSync(githubPath, 'utf-8');
 
-  // Fix: Buffer.from(resp.content, 'base64') fails when resp.content is undefined
-  // This happens when GitHub API returns an error (e.g., file not found)
   if (code.includes("Buffer.from(resp.content, 'base64')")) {
     code = code.replace(
       "Buffer.from(resp.content, 'base64').toString('utf-8')",
@@ -17,7 +15,6 @@ if (fs.existsSync(githubPath)) {
     console.log('[patch] Fixed Buffer.from(undefined) in github.js');
   }
 
-  // Fix: Default GITHUB_PATH to empty string if not set
   if (code.includes('this.basePath = GITHUB_PATH;')) {
     code = code.replace(
       'this.basePath = GITHUB_PATH;',
@@ -39,3 +36,15 @@ if (fs.existsSync(uploadSourcePath)) {
   fs.copyFileSync(uploadSourcePath, uploadControllerPath);
   console.log('[patch] Updated upload controller');
 }
+
+// Register upload route in router
+const routerPath = path.join(__dirname, 'node_modules/@waline/vercel/src/config/router.js');
+const routerContent = `module.exports = [
+  {
+    match: /\\/api\\/upload/,
+    controller: 'upload',
+    method: 'rest',
+  },
+];`;
+fs.writeFileSync(routerPath, routerContent);
+console.log('[patch] Registered upload route');
