@@ -105,10 +105,12 @@ module.exports = () => async (ctx, next) => {
       return;
     }
 
-    const file = ctx.request.files && (ctx.request.files.file || ctx.request.files.upload || Object.values(ctx.request.files)[0]);
+    const files = ctx.request.files;
+    const body = ctx.request.body;
+    const file = files && (files.file || files.upload || (Array.isArray(files) ? files[0] : Object.values(files)[0]));
     if (!file) {
       ctx.type = 'application/json';
-      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file' });
+      ctx.body = JSON.stringify({ errno: 1, errmsg: 'No file', debug: { filesType: typeof files, filesKeys: files ? Object.keys(files) : null, bodyType: typeof body, bodyKeys: body ? Object.keys(body) : null } });
       return;
     }
 
