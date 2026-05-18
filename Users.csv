@@ -1,2 +1,2 @@
 id,objectId,display_name,email,password,type,url,avatar,label,github,twitter,facebook,google,weibo,qq,oidc,createdAt,updatedAt
-u001,,admin,500fan@gmail.com,$2a$08$GmHsZjDAOyBL6DlylspRteCuTqaPivWszNDUnXzDtHgv8KH.BQxKe,administrator,,,,,,,2026-05-18,2026-05-18,,,,
+u001,,admin,500fan@gmail.com,$2a$08$NQJ/1ZUL1nKDlg7O9o9pBeo3bU/RnVmT9cubwvB9RK7/OyugbIAXu,administrator,,,,,,,2026-05-18,2026-05-18,,,,
